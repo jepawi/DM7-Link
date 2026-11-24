@@ -1,0 +1,34 @@
+module Dm7Link
+singleton Theme 1.0 Theme.qml
+ConsolePage 1.0 ConsolePage.qml
+Rail 1.0 Rail.qml
+SButton 1.0 SButton.qml
+SCell 1.0 SCell.qml
+SDropdown 1.0 SDropdown.qml
+SField 1.0 SField.qml
+SLamp 1.0 SLamp.qml
+SPicker 1.0 SPicker.qml
+SRow 1.0 SRow.qml
+SSection 1.0 SSection.qml
+SSegmented 1.0 SSegmented.qml
+SSpin 1.0 SSpin.qml
+SSwitch 1.0 SSwitch.qml
+STableHead 1.0 STableHead.qml
+ShowBar 1.0 ShowBar.qml
+TimecodePage 1.0 TimecodePage.qml
+TimecodeReadout 1.0 TimecodeReadout.qml
+Timeline 1.0 Timeline.qml
+Toast 1.0 Toast.qml
+WavesChannels 1.0 WavesChannels.qml
+WavesPage 1.0 WavesPage.qml
+WavesRemote 1.0 WavesRemote.qml
+WavesScenes 1.0 WavesScenes.qml
+WavesSetup 1.0 WavesSetup.qml
+MacrosPage 1.0 MacrosPage.qml
+SettingsPage 1.0 SettingsPage.qml
+MacChip 1.0 MacChip.qml
+MacBlockRow 1.0 MacBlockRow.qml
+MacValueSheet 1.0 MacValueSheet.qml
+MacParamPicker 1.0 MacParamPicker.qml
+MacMeterPicker 1.0 MacMeterPicker.qml
+MacTextDialog 1.0 MacTextDialog.qml
