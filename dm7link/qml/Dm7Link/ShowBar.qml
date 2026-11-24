@@ -84,15 +84,17 @@ Rectangle {
 
         Stage {
             label: "Console"
-            lamp: Session.online ? "ok" : Session.busy ? "busy" : "bad"
-            value: Session.online ? (Session.consoleName || "DM7") : Session.busy ? "Connecting" : "Offline"
-            detail: Session.online || Session.busy ? Session.ip : (Session.message || "No console")
+            lamp: Session.offline ? "armed" : Session.online ? "ok" : Session.busy ? "busy" : "bad"
+            value: Session.offline ? "Offline"
+                   : Session.online ? (Session.consoleName || "DM7") : Session.busy ? "Connecting" : "Not connected"
+            detail: Session.offline ? (Session.offlineFrom === "blank" ? "Blank DM7" : (Show.desk.name || "The show’s desk"))
+                    : Session.online || Session.busy ? Session.ip : (Session.message || "No console")
         }
         Stage {
             last: !Features.wavesOn
             label: "Scene" + (bar.sc.bank ? " · bank " + bar.sc.bank : "")
             value: bar.sc.number ? bar.sc.number + (bar.sc.edited ? "  edited" : "") : "—"
-            valueColor: Session.online ? Theme.text : Theme.text3
+            valueColor: Session.online && !Session.offline ? Theme.text : Theme.text3
             detail: bar.sc.title || (Session.online ? "" : "Waiting for the console")
         }
         Stage {

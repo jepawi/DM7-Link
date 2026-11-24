@@ -10,7 +10,7 @@ ApplicationWindow {
     minimumWidth: 1180
     minimumHeight: 720
     visible: true
-    title: "DM7 Link"
+    title: Show.name + (Show.modified ? " •" : "") + " — DM7 Link"
     color: Theme.ground
     font.family: Theme.ui
 
@@ -38,8 +38,9 @@ ApplicationWindow {
             StackLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                currentIndex: ["console", "waves", "timecode", "macros", "settings"].indexOf(Shell.page)
+                currentIndex: ["console", "show", "waves", "timecode", "macros", "settings"].indexOf(Shell.page)
                 ConsolePage {}
+                ShowPage { actions: showActions; resolver: resolver }
                 WavesPage {}
                 TimecodePage {}
                 MacrosPage {}
@@ -57,6 +58,16 @@ ApplicationWindow {
     }
     Connections { target: Features; function onChanged() { win.leaveHidden() } }
     Component.onCompleted: leaveHidden()
+
+    // Show files: one set of actions for the SHOW page and the keyboard.
+    ShowActions { id: showActions }
+    Shortcut { sequences: [StandardKey.Save]; onActivated: showActions.save() }
+    Shortcut { sequences: [StandardKey.SaveAs]; onActivated: showActions.saveAs() }
+    Shortcut { sequences: [StandardKey.Open]; onActivated: showActions.openShow() }
+    Shortcut { sequences: [StandardKey.New]; onActivated: showActions.newShow() }
+
+    // The desk no longer matches the show: asked when the desk check finds it.
+    ResolveDialog { id: resolver }
 
     // One line at the foot of the window for what just happened -- scene and cue notices.
     Toast {

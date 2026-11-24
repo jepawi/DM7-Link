@@ -8,6 +8,7 @@ Item {
     Component.onCompleted: if (!Session.online && Session.found.length === 0) Session.scan()
 
     readonly property string phaseText: {
+        if (Session.offline) return "Working offline"
         switch (Session.phase) {
         case "online": return "Connected"
         case "connecting": return "Connecting"
@@ -50,10 +51,11 @@ Item {
                         spacing: 8
                         SLamp {
                             anchors.verticalCenter: parent.verticalCenter
-                            state: Session.online ? "ok" : Session.busy ? "busy" : Session.message ? "bad" : "off"
+                            state: Session.offline ? "armed" : Session.online ? "ok" : Session.busy ? "busy" : Session.message ? "bad" : "off"
                         }
                         Text {
-                            text: Session.online ? (Session.consoleName || "DM7") + "  ·  " + Session.ip
+                            text: Session.offline ? (Session.offlineFrom === "blank" ? "Blank DM7" : "The show’s desk")
+                                  : Session.online ? (Session.consoleName || "DM7") + "  ·  " + Session.ip
                                   : Session.message || "Choose a console to connect to"
                             color: Theme.text2
                             font.family: Theme.ui
@@ -68,6 +70,15 @@ Item {
                         font.family: Theme.ui
                         font.pixelSize: Theme.small + 1
                         wrapMode: Text.WordWrap
+                    }
+                    Item { width: 1; height: 10; visible: offlineButton.visible }
+                    SButton {
+                        id: offlineButton
+                        objectName: "workOffline"
+                        visible: !Session.online || Session.offline
+                        kind: Session.offline ? "secondary" : "primary"
+                        text: Session.offline ? "Go online" : "Work offline"
+                        onClicked: Session.setOffline(!Session.offline)
                     }
                 }
 
@@ -84,21 +95,21 @@ Item {
                             text: Session.ip
                             placeholderText: "192.168.0.2"
                             onTextEdited: Session.setIp(text)
-                            onAccepted: Session.connectNow()
+                            onAccepted: Session.connectLive()
                             Connections { target: Session; function onIpChanged() { if (!ip.activeFocus) ip.text = Session.ip } }
                         }
                         SButton {
                             kind: "primary"
-                            text: Session.online && !Session.dirty ? "Reconnect" : "Connect"
+                            text: Session.online && !Session.offline && !Session.dirty ? "Reconnect" : "Connect"
                             enabled: Session.valid
-                            onClicked: Session.connectNow()
+                            onClicked: Session.connectLive()
                         }
                     }
                     Row {
                         spacing: 8
                         topPadding: 6
                         SButton {
-                            visible: Session.online || Session.busy || Session.retryIn > 0
+                            visible: !Session.offline && (Session.online || Session.busy || Session.retryIn > 0)
                             text: Session.busy || Session.retryIn > 0 ? "Stop" : "Disconnect"
                             onClicked: Session.busy || Session.retryIn > 0 ? Session.pauseRetry() : Session.disconnect()
                         }
@@ -130,7 +141,7 @@ Item {
                                 compact: true
                                 kind: "quiet"
                                 text: modelData
-                                onClicked: { Session.setIp(modelData); Session.connectNow() }
+                                onClicked: { Session.setIp(modelData); Session.connectLive() }
                             }
                         }
                     }

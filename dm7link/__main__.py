@@ -3,6 +3,8 @@
     python3 run.py                       connect to the console last used
     python3 run.py 192.168.0.2           ...or to this one
     python3 run.py --demo                no console: a recorded one stands in
+    python3 run.py --offline             the show file's desk in place of the console
+    python3 run.py --show show.dm7show   open this show file first
     python3 run.py --ltc-bench 01:00:00:00   timecode generated in the app, no interface
     python3 run.py --screenshot out --page waves --shot-at 2500
 
@@ -13,6 +15,8 @@ What is built here, and nothing else:
     waves       WavesBridge, link "direct"              the rack bridge runs in this app;
                                                         SuperRack's ProLink dials this computer
     timecode    ltc.Reader + ShowCues                   an audio interface, scene cues
+    show        ShowFiles                               show files, the desk check
+    offline     LinkWorker + LinkConnection             the show's desk in place of the console
 """
 from __future__ import annotations
 
@@ -30,21 +34,21 @@ from PySide6.QtQml import QQmlApplicationEngine  # noqa: E402
 from PySide6.QtQuick import QQuickWindow  # noqa: E402,F401
 
 from dm7gui.channels import ChannelsBridge  # noqa: E402
-from dm7gui.connection import ConnectionController  # noqa: E402
 from dm7gui.controls import ControlsBridge  # noqa: E402
 from dm7gui.ltc import Reader as LtcReader  # noqa: E402
 from dm7gui.metering import MeterBridge  # noqa: E402
 from dm7gui.scenes import SceneBridge  # noqa: E402
-from dm7gui.session import SessionWorker  # noqa: E402
 from dm7gui.waves import WavesBridge  # noqa: E402
 
 from . import __version__  # noqa: E402
 from .adapters import AdapterChoice  # noqa: E402
 from .appconfig import AppConfig  # noqa: E402
 from .features import AppMacros, Features  # noqa: E402
+from .offline import LinkConnection, LinkWorker  # noqa: E402
+from .showfile import ShowFiles  # noqa: E402
 from .timecode import ShowCues  # noqa: E402
 
-PAGES = ("console", "waves", "timecode", "macros", "settings")
+PAGES = ("console", "show", "waves", "timecode", "macros", "settings")
 
 
 class SelKeyRelay(QObject):
@@ -88,6 +92,8 @@ def _args(argv) -> argparse.Namespace:
     ap.add_argument("--demo", action="store_true", help="a recorded console instead of a desk")
     ap.add_argument("--demo-settings", default=None, help="demo: which capture to replay")
     ap.add_argument("--no-auto-connect", action="store_true")
+    ap.add_argument("--offline", action="store_true", help="work with the show file's desk")
+    ap.add_argument("--show", default=None, metavar="FILE", help="open this show file first")
     ap.add_argument("--page", choices=PAGES, default=None)
     ap.add_argument("--section", default=None, help="screenshots: the Waves tab to open on")
     ap.add_argument("--size", default="1440x900")
@@ -124,6 +130,8 @@ def main(argv=None) -> int:
         config.set("console_ip", args.ip)
     if args.no_auto_connect:
         config.set("auto_connect", False)
+    if args.offline:
+        config.set("offline", True)
     # The rack bridge always runs inside this app: SuperRack connects here.
     waves_cfg = dict(config.get("waves", {}) or {})
     # ...and Touch & Turn is not part of this app: no desk fader drives SuperRack.
@@ -150,16 +158,16 @@ def main(argv=None) -> int:
     macros_on = bool((config.get("features", {}) or {}).get("macros", True))
     worker_args = {"meter_state": meters.state, "meter_mode": "unicast" if macros_on else "off",
                    "on_meter_feed": meters.note_feed, "value_store": controls.store}
-    if args.demo:
-        from dm7gui.mock import MockWorker
-        worker = MockWorker(warmup=float(config.get("warmup", 4.0)), mode="ok",
-                            settings=args.demo_settings, **worker_args)
-    else:
-        worker = SessionWorker(warmup=float(config.get("warmup", 4.0)), **worker_args)
+    # A real console (or, --demo, the recorded one) -- or, offline, the show file's desk.
+    show_desk = {"source": None}
+    worker = LinkWorker(warmup=float(config.get("warmup", 4.0)), mode="ok",
+                        settings=args.demo_settings, demo=args.demo,
+                        image_source=lambda: show_desk["source"]() if show_desk["source"]
+                        else (None, ""), **worker_args)
     # The selection SuperRack follows.
     channels = ChannelsBridge(store=controls.store, meters=None)
-    session = ConnectionController(config=config, worker=worker, meters=meters,
-                                   controls=controls, extras=[channels])
+    session = LinkConnection(config=config, worker=worker, meters=meters,
+                             controls=controls, extras=[channels])
     controls.bind(session)
     channels.bind(session)
     scenes = SceneBridge(store=controls.store)
@@ -182,13 +190,19 @@ def main(argv=None) -> int:
 
     adapter = AdapterChoice(config)
     features = Features(config, waves, cues, macros)
+    show = ShowFiles(data, config, session, scenes, waves, cues, macros, features,
+                     controls.store)
+    show_desk["source"] = show.image
+    if args.show:
+        QTimer.singleShot(0, lambda: show.open(args.show))
     shell = App(page=args.page or "console", data_dir=str(data))
     engine = QQmlApplicationEngine()
     engine.addImportPath(str(paths.resource("qml")))
     ctx = engine.rootContext()
     for name, obj in (("Session", session), ("Scenes", scenes), ("Waves", waves),
                       ("Cues", cues), ("Shell", shell),
-                      ("Adapter", adapter), ("Macros", macros), ("Features", features)):
+                      ("Adapter", adapter), ("Macros", macros), ("Features", features),
+                      ("Show", show)):
         ctx.setContextProperty(name, obj)
     w, _, h = str(args.size).partition("x")
     ctx.setContextProperty("initialWidth", int(w or 1440))

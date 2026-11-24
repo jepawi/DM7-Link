@@ -253,6 +253,210 @@ try:
 except ImportError as exc:
     print(f"skip  feature checks ({exc})")
 
+# -- 2c. show files: the desk check on its own -----------------------------------
+try:
+    from dm7link import mismatch
+
+    def show_with(cue_scenes, macro_scenes=(), snap=None, skip=(), rack_map=None, follow=True):
+        return {"cues": {"cues": [{"id": f"c{i}", "kind": "scene", "scene": s, "armed": True}
+                                  for i, s in enumerate(cue_scenes)]},
+                "macros": {"macros": [{"id": "m1", "armed": True, "triggers": [],
+                                       "blocks": [{"kind": "if", "then": [
+                                           {"kind": "scene", "do": "recall", "scene": s}
+                                           for s in macro_scenes], "else": []}]}]},
+                "racks": {"snap_map": dict(snap or {}), "snap_skip": list(skip),
+                          "map": dict(rack_map or {}), "follow_patch": follow}}
+
+    def desk(*scenes, channels=None):
+        return {"scenes": [{"bank": 0, "number": n, "title": t} for n, t in scenes],
+                "channels": dict(channels or {})}
+
+    was = desk(("010.00", "Band on"), ("012.00", "Band off"), ("020.00", "Interval"),
+               ("030.00", "Encore"), channels={"CH 1": "Kick", "CH 2": "Snare"})
+    now = desk(("011.00", "Band on"), ("012.00", "Speech"), ("020.00", "Interval"),
+               channels={"CH 1": "Hat", "CH 2": "Snare top", "CH 3": "Kick"})
+    show = show_with(["010.00", "020.00", "030.00", "040.00"], ["012.00"],
+                     snap={"A 10": "Verse", "A 20": "Break"}, skip=["A 12"],
+                     rack_map={"CH 1": "Kick rack", "CH 2": "Snare rack"}, follow=False)
+    issues = mismatch.find(show, was, now, 0)
+    by = {i["id"]: i for i in issues}
+    ok(by.get("scene:0:010.00", {}).get("kind") == "moved"
+       and by["scene:0:010.00"]["choice"] == "follow:011.00",
+       "a scene renumbered on the desk is found by its title, and followed by default")
+    ok(by.get("scene:0:012.00", {}).get("kind") == "renamed", "a re-titled scene is found")
+    ok(by.get("scene:0:030.00", {}).get("kind") == "missing", "a deleted scene is found")
+    ok(by.get("scene:0:040.00", {}).get("kind") == "missing",
+       "a scene the show never saw and the desk does not have is found")
+    ok("scene:0:020.00" not in by, "an unchanged scene is no issue")
+    ok(by.get("channel:CH 1", {}).get("choice") == "follow:CH 3",
+       "a channel whose name moved is followed to the channel that has it now")
+    ok(by.get("channel:CH 2", {}).get("kind") == "renamed", "a renamed channel is found")
+    n = mismatch.resolve(show, issues, {"scene:0:030.00": "clear"}, 0)
+    cues_now = [c["scene"] for c in show["cues"]["cues"]]
+    ok(cues_now == ["011.00", "020.00", "", "040.00"],
+       f"resolving: cue followed, cue cleared, cue kept ({cues_now})")
+    ok(show["cues"]["cues"][2]["armed"] is False, "a cue whose scene was removed is disarmed")
+    ok(show["macros"]["macros"][0]["blocks"][0]["then"][0]["scene"] == "012.00",
+       "a re-titled scene is kept by default")
+    ok(show["racks"]["snap_map"] == {"A 11": "Verse", "A 20": "Break"},
+       f"the Waves scene table follows too ({show['racks']['snap_map']})")
+    ok(show["racks"]["map"] == {"CH 3": "Kick rack", "CH 2": "Snare rack"},
+       f"the Waves rack table follows the channel ({show['racks']['map']})")
+    ok(n == 4, f"four references changed: two cues, the Waves scene, the channel ({n})")
+    ok(mismatch.find(show_with(["010.00"]), {}, desk(("010.00", "x")), 0) == [],
+       "a show with no desk record: what is on the desk is fine")
+    ok(mismatch.find(show_with([], rack_map={"CH 1": "K"}), was, now, 0) == [],
+       "with Follow SuperRack's patch on, channels are not checked")
+except ImportError as exc:
+    print(f"skip  desk check ({exc})")
+
+# -- 2d. show files: the desk image and the file itself ------------------------
+try:
+    from dm7gui.controls import ControlsBridge
+    from dm7link import deskimage, showfile
+
+    blank = deskimage.blank()
+    ok(blank is not None and len(blank["stream"]) > 1_000_000, "the blank DM7 ships with the app")
+    store = ControlsBridge().store
+    deskimage.AreaRecorder(store)
+    ok(deskimage.replay(store, blank) >= 10, "the blank DM7 replays as a console")
+    idx = store.leaf_index("Mixing", ["InputChannel", "Label", "Name"])
+    store.mirror.seed("Mixing", idx, [4] + [0] * (len(idx) - 1), "Vox")
+    image = deskimage.capture(store, None)
+    files = deskimage.pack(image)
+    again = ControlsBridge().store
+    deskimage.replay(again, deskimage.unpack(files))
+    ok(again.raw_at("Mixing", idx, [4] + [0] * (len(idx) - 1)) == "Vox",
+       "a change made after the sync survives the image")
+    ok(sum(len(b) for b in files.values()) < 200_000,
+       f"the image is small ({sum(len(b) for b in files.values()):,} bytes)")
+
+    stmp = Path(tempfile.mkdtemp())
+    s = showfile.empty_show()
+    s["cues"]["cues"] = [{"id": "c1", "scene": "001.00", "kind": "scene"}]
+    showfile.write_show(stmp / "a.dm7show", s, files)
+    back, desk_back = showfile.read_show(stmp / "a.dm7show")
+    ok(back["cues"]["cues"][0]["scene"] == "001.00" and "desk/stream.bin" in desk_back,
+       "a show file reads back with its desk")
+    (stmp / "b.dm7show").write_text("{}")
+    try:
+        showfile.read_show(stmp / "b.dm7show")
+        ok(False, "a file that is not a show is refused")
+    except ValueError:
+        ok(True, "a file that is not a show is refused")
+except ImportError as exc:
+    print(f"skip  desk image ({exc})")
+
+# -- 2e. show files in the running app: save, desk changes, resolve, offline -----
+try:
+    from dm7gui.mock import DEMO_SETTINGS
+    if not DEMO_SETTINGS.exists():
+        raise ImportError("no recorded console in this checkout")
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtCore import QCoreApplication
+    from PySide6.QtGui import QGuiApplication
+    from dm7gui.channels import ChannelsBridge
+    from dm7gui.controls import ControlsBridge
+    from dm7gui.scenes import SceneBridge
+    from dm7gui.waves import WavesBridge
+    from dm7link.appconfig import AppConfig
+    from dm7link.features import AppMacros, Features
+    from dm7link.offline import LinkConnection, LinkWorker
+    from dm7link.showfile import ShowFiles
+    from dm7link.timecode import ShowCues
+
+    qapp = QGuiApplication.instance() or QGuiApplication([])
+
+    def wait(cond, seconds=20.0):
+        end = time.monotonic() + seconds
+        while time.monotonic() < end:
+            QCoreApplication.processEvents()
+            if cond():
+                return True
+            time.sleep(0.02)
+        return False
+
+    atmp = Path(tempfile.mkdtemp())
+    acfg = AppConfig(atmp / "config.json")
+    acfg.set("features", {"waves": False, "timecode": False, "macros": True})
+    acfg.set("waves", dict(acfg.get("waves"), link="direct"))
+    acfg.save()
+    controls = ControlsBridge()
+    box = {}
+    worker = LinkWorker(warmup=0.2, mode="ok", demo=True, meter_mode="off",
+                        value_store=controls.store, image_source=lambda: box["show"].image())
+    channels = ChannelsBridge(store=controls.store, meters=None)
+    session = LinkConnection(config=acfg, worker=worker, controls=controls, extras=[channels])
+    controls.bind(session)
+    channels.bind(session)
+    scenes = SceneBridge(store=controls.store)
+    scenes.bind(session)
+    areader = ltc.Reader(acfg.get("ltc"))
+    amacros = AppMacros(store=controls.store, ltc=areader, scenes=scenes, path=atmp / "macros.json")
+    amacros.bind(session)
+    acues = ShowCues(reader=areader, macros=amacros, scenes=scenes, config=acfg,
+                     path=atmp / "cues.json")
+    awaves = WavesBridge(channels=channels, config=acfg, scenes=scenes)
+    afeats = Features(acfg, awaves, acues, amacros)
+    show = ShowFiles(atmp, acfg, session, scenes, awaves, acues, amacros, afeats, controls.store)
+    box["show"] = show
+    afeats.boot()
+    session.setIp("10.0.0.7")
+    session.connectNow()
+    ok(wait(lambda: session.online), "the recorded console connects")
+    ok(wait(lambda: show.desk["known"] and show.desk["scenesA"] == 12),
+       f"connected, the desk is taken as the show's ({show.desk})")
+    ok(not show.modified, "nothing to save yet")
+
+    cid = acues.addCue()
+    acues.setCueScene(cid, "10")                  # "Band on" in the recording
+    ok(wait(lambda: show.modified, 3), "a new cue makes the show unsaved")
+    path = atmp / "Tour.dm7show"
+    ok(show.saveAs(str(path)) and path.exists() and not show.modified and show.name == "Tour",
+       "SAVE AS writes the show file")
+
+    # The desk the show was built on had "Band on" at 7: the connected one has it at 10.
+    rec = dict(show._record)
+    rec["scenes"] = [dict(sc, number="007.00") if sc["number"] == "010.00" else sc
+                     for sc in rec["scenes"]]
+    show._write_record(rec)
+    acues.setCueScene(cid, "7")
+    show._check_due = True
+    ok(wait(lambda: len(show.issues) == 1, 5) and show.issues[0]["kind"] == "moved",
+       f"a scene moved on the desk is asked about ({show.issues})")
+    show.resolve({})
+    ok(acues.book.find(cid)["scene"] == "010.00" and not show.issues,
+       "APPLY follows the cue to the scene's new number")
+
+    acues.setCueScene(cid, "7")
+    show.later()
+    show._check_due = True
+    ok(wait(lambda: len(show.issues) == 1, 5), "...and asked again")
+    show.later()
+    ok(acues.book.find(cid)["scene"] == "007.00", "LATER changes nothing")
+
+    ok(show.open(str(path)) and acues.book.find(cid)["scene"] == "010.00",
+       "OPEN puts the saved show back")
+    acues.addCue()
+    show.newShow()
+    ok(acues.cueCount == 0 and show.name == "Untitled show", "NEW empties the show")
+    show.open(str(path))
+
+    session.setOffline(True)
+    ok(wait(lambda: session.online and session.offline and session.offlineFrom == "show"),
+       "offline: the show's own desk stands in for the console")
+    ok(acfg.get("console_ip") == "10.0.0.7", "offline leaves the console address alone")
+    show._check_due = True
+    ok(not wait(lambda: show.issues, 1.5), "offline, the desk check does not run")
+    session.setOffline(False)
+    ok(wait(lambda: session.online and not session.offline), "back online to the console")
+    session.shutdown()
+    amacros.shutdown()
+    acues.shutdown()
+    awaves.shutdown()
+except ImportError as exc:
+    print(f"skip  show files in the app ({exc})")
+
 # -- 3. the window loads ---------------------------------------------------------
 env = dict(os.environ, QT_QPA_PLATFORM="offscreen", QT_QUICK_BACKEND="software",
            DM7LINK_HOME=str(Path(__import__("tempfile").mkdtemp())))

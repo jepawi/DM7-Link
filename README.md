@@ -3,17 +3,24 @@
 Show control for the **Yamaha DM7**, on a Mac or Windows laptop at FOH.
 
 - **Console.** Finds the DM7 on the network, connects, and reconnects by itself.
-- **Waves SuperRack.** The desk's SEL opens the channel's rack, and pressing it again steps to the
-  next plug-in (switchable). A scene recall recalls a SuperRack snapshot, and a scene store stores
-  one. Racks are named after the desk channels that feed them, and the desk's tempo sets
-  SuperRack's tempo. SuperRack's racks and snapshots can be controlled from the app, and Show mode
-  locks it to show use. SuperRack can be fed by the desk's **PY card** or over **Dante**.
+- **Waves SuperRack.** The desk's SEL opens the rack that channel feeds in SuperRack, read from
+  the desk's and SuperRack's own patch, and pressing it again steps to the next plug-in
+  (switchable). A scene recall recalls a SuperRack snapshot, and a scene store stores one. The
+  desk's tempo sets SuperRack's tempo. SuperRack's racks and snapshots can be controlled from the
+  app, and Show mode locks it to show use. SuperRack can be fed by the desk's **PY card** or over
+  **Dante**.
 - **Timecode.** LTC into any audio interface input. A cue list recalls DM7 scenes or runs macros
   when the timecode plays through each cue. Cues can be grouped in songs, the timeline shows one
   lane per hour, and Live update moves a cue to the incoming timecode.
 - **Macros.** Short programs built from blocks (set, change, fade, scene, if, while, for, wait…)
   that act on the desk, started by hand or by a condition, a value change, a timer, a time of
   day, timecode or a scene recall. Every run has fixed limits.
+- **Show files.** One `.dm7show` file holds a whole show: features, the Waves tables and
+  settings, the cue list, every macro, and the desk it was built on (scene list, channel names,
+  every setting). **Work offline** puts that desk in place of the console, so a show can be
+  prepared with no console on the table. When the console no longer matches the show (a scene
+  renumbered, renamed or deleted, a channel renamed), a window lists every cue, macro and table
+  entry affected and offers to follow, keep or remove each.
 - **Settings.** Each of Waves, Timecode and Macros can be switched off; a part that is off stops
   and is hidden.
 
@@ -27,6 +34,8 @@ Show control for the **Yamaha DM7**, on a Mac or Windows laptop at FOH.
 pip install -r requirements.txt
 python3 run.py                 # connect to the console last used
 python3 run.py 192.168.0.2     # ...or to this one
+python3 run.py --offline       # the show file's desk instead of the console
+python3 run.py --show Tour.dm7show
 ```
 
 Python 3.10 or later. DM7 Link lives in a repository beside the DM7 library it is built on
@@ -95,13 +104,14 @@ macOS asks for microphone access the first time an input opens.
 | Linux | `~/.config/dm7link/` |
 
 `config.json` holds the settings, `racks.json` the channel and scene tables, `cues.json` the cue
-list, and `rack-logs/` a daily log of everything sent to SuperRack. **Settings folder**, at the
+list, `macros.json` the macros, `desk.json` and `desk-image.zip` the show's desk, and
+`rack-logs/` a daily log of everything sent to SuperRack. **Settings folder**, at the
 foot of the window, opens it.
 
 ## Development
 
 ```bash
-python3 check.py                                   # audio LTC decode, scene cues, window loads
+python3 check.py                                   # LTC decode, scene cues, show files, window
 python3 run.py --demo                              # a recorded console instead of a desk
 python3 run.py --demo --ltc-bench 01:00:00:00      # ...and timecode generated in the app
 python3 ../rack-bridge/tools/fake_superrack.py     # a stand-in SuperRack that dials in

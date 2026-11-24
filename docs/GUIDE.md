@@ -5,7 +5,7 @@ It connects to the console over the network and adds three things the desk does 
 
 | Feature | What it does |
 |---|---|
-| **Waves SuperRack** | The desk drives SuperRack. SEL opens the channel's rack, a scene recall recalls a snapshot, a scene store stores one, racks are named after desk channels, and the desk's tempo sets SuperRack's tempo. |
+| **Waves SuperRack** | The desk drives SuperRack. SEL opens the rack that channel feeds, a scene recall recalls a snapshot, a scene store stores one, and the desk's tempo sets SuperRack's tempo. |
 | **Timecode** | LTC on an audio interface input fires cues that recall desk scenes or run macros, exactly when the show plays through them. |
 | **Macros** | Short programs, built from blocks, that act on the desk: set, change or fade any parameter, recall or store scenes, react to levels, values, times or timecode. |
 
@@ -19,13 +19,14 @@ hidden from the window.
 1. [Getting started](#1-getting-started)
 2. [The window](#2-the-window)
 3. [Console](#3-console)
-4. [Waves SuperRack](#4-waves-superrack)
-5. [Timecode](#5-timecode)
-6. [Macros](#6-macros)
-7. [Settings](#7-settings)
-8. [Files and backups](#8-files-and-backups)
-9. [Troubleshooting](#9-troubleshooting)
-10. [What DM7 Link does not do](#10-what-dm7-link-does-not-do)
+4. [Show files](#4-show-files)
+5. [Waves SuperRack](#5-waves-superrack)
+6. [Timecode](#6-timecode)
+7. [Macros](#7-macros)
+8. [Settings](#8-settings)
+9. [Files and backups](#9-files-and-backups)
+10. [Troubleshooting](#10-troubleshooting)
+11. [What DM7 Link does not do](#11-what-dm7-link-does-not-do)
 
 ---
 
@@ -98,12 +99,73 @@ connecting.
 
 ---
 
-## 4. Waves SuperRack
+## 4. Show files
+
+A show file (`.dm7show`) holds a whole show: the features in use, the Waves tables and settings,
+the timecode cue list and frame rate, every macro, and the desk the show was built on. Open
+another show file and everything switches to it at once.
+
+| Button | |
+|---|---|
+| **Save** | Into the show file it came from (⌘S / Ctrl+S). An untitled show asks for a name. |
+| **Save as…** | Into a new show file (⇧⌘S / Ctrl+Shift+S). |
+| **Open…** | Another show file (⌘O / Ctrl+O). Unsaved changes are asked about first. |
+| **New** | An empty show (⌘N / Ctrl+N). The console connected now becomes its desk. |
+
+**Recent shows** opens a show file used before; **×** takes it off the list. The rail shows the
+show's name, and *not saved* while it has changes. Every change is still kept in the settings
+folder as it is made, so quitting loses nothing; **Save** is what puts it in the show file.
+
+Not in a show file, because they belong to the computer: the console address, SuperRack's
+adapter, the ProLink port, SuperRack's session folder. The audio interface the LTC comes in on is
+in the show file and is used when this computer has an interface by that name.
+
+### 4.1 The desk in a show file
+
+Saved while connected, a show file keeps the console's scene list, its channel names and a copy of
+every setting on it. **Desk**, on the Show page, says which console it is, when it was read and
+how many scenes and named channels it holds.
+
+### 4.2 Working offline
+
+**Work offline** (on the startup screen, under the connection status, or on the Show page) puts the show file's desk in place of the console:
+the scene list, the channel names and every parameter are there, so cues can be pointed at scenes
+and macros built with no console on the table. Nothing is sent anywhere. **Go online** (or
+**Connect**) goes back to the console.
+
+A show that has never been connected to a console works offline on a blank DM7: every parameter,
+no scenes. Scene cues can still be typed by number.
+
+Offline stays on across a restart.
+
+### 4.3 When the desk has changed
+
+A cue, a macro and the Waves scene table name a scene by its number, and the Waves channel table
+names a channel by its number. Scenes are renumbered, renamed and deleted on the desk, and channels
+renamed. So at startup, after opening a show, at every connect and whenever the desk's scene list
+changes, DM7 Link compares the console with the desk the show was built on. If something the show
+uses has changed, a window lists it:
+
+| | | Choices |
+|---|---|---|
+| **Moved** | The scene's title (or the channel's name) is now on another number. | **Use** the new number (default) · **Keep** the old one · **Remove the reference** |
+| **Renamed** | The number is still there, with another title. | **Keep** (default) · **Remove the reference** |
+| **Missing** | Nothing on the desk has that number or that title. | **Keep** (default) · **Remove the reference** |
+
+**Apply** changes the show and takes the console as the show's desk. A cue whose scene is removed
+is disarmed. **Later** changes nothing, and the window comes back at the next connect.
+
+Channels are compared only while **Follow SuperRack's patch** is off: with it on, the channel
+table follows the patch by itself.
+
+---
+
+## 5. Waves SuperRack
 
 DM7 Link *is* the console that SuperRack's ProLink remote talks to. SuperRack connects to
 DM7 Link; no other bridge software is involved.
 
-### 4.1 First setup
+### 5.1 First setup
 
 **In DM7 Link — Waves ▸ Setup ▸ Waves link**
 
@@ -129,7 +191,7 @@ The Waves page then reads **SuperRack connected**.
 - An adapter plugged in after SuperRack started appears in its Port menu only after SuperRack
   restarts.
 
-### 4.2 What feeds SuperRack: PY card or Dante
+### 5.2 What feeds SuperRack: PY card or Dante
 
 **Waves ▸ Setup ▸ SuperRack is fed by**
 
@@ -145,7 +207,7 @@ reaches SuperRack in one of three ways:
 - it is **patched straight** to a card output (a mix, a matrix, the stereo bus, a direct out tap),
 - its **input** is patched from the card (an FX return coming back from SuperRack).
 
-### 4.3 Channels tab
+### 5.3 Channels tab
 
 Every desk channel that reaches SuperRack, in card-port order, and the rack its SEL opens.
 
@@ -167,7 +229,7 @@ Every desk channel that reaches SuperRack, in card-port order, and the rack its 
 - Racks are stored **by name**, so reordering racks in SuperRack does not break the table.
 - A channel that does not reach SuperRack opens nothing.
 
-### 4.4 Scenes tab
+### 5.4 Scenes tab
 
 What a DM7 scene recall does in SuperRack.
 
@@ -194,7 +256,7 @@ Choose **Bank A** or **Bank B** to see that bank's scenes.
 snapshot*). A scene with no snapshot gets a new one named after the scene, if *A scene with no
 snapshot gets a new one* is on.
 
-### 4.5 SuperRack tab
+### 5.5 SuperRack tab
 
 SuperRack's own racks and snapshots, controlled from DM7 Link.
 
@@ -208,7 +270,7 @@ SuperRack's own racks and snapshots, controlled from DM7 Link.
 | **Snapshots** | Click one, then **Recall**, **Store** (overwrite with SuperRack's current state) or **Delete**. **Add** creates a new snapshot with the typed name. **Previous / Next** step through snapshots |
 | **Activity** | Everything sent to SuperRack, newest first |
 
-### 4.6 Setup tab
+### 5.6 Setup tab
 
 | Setting | |
 |---|---|
@@ -231,9 +293,9 @@ across a restart.
 
 ---
 
-## 5. Timecode
+## 6. Timecode
 
-### 5.1 The input
+### 6.1 The input
 
 LTC arrives as an audio signal. Plug it into any line input of any audio interface. Level and
 polarity do not matter.
@@ -260,7 +322,7 @@ The readout shows the incoming timecode and its state:
 macOS asks for microphone access the first time the input opens. Allow it, or timecode will
 never arrive.
 
-### 5.2 Cues
+### 6.2 Cues
 
 A cue is a point in the timecode and what happens there: **recall a scene** or, with Macros on,
 **run a macro**. A scene can be:
@@ -287,19 +349,19 @@ fires once per pass.
 
 A cue that just fired is highlighted for a few seconds.
 
-### 5.3 Songs
+### 6.3 Songs
 
 Cues in a song are listed under the song's heading: first and last time, number of cues and how
 many are armed. Click a heading to open or close it. The song the timecode is in opens by itself.
 
-### 5.4 Timeline
+### 6.4 Timeline
 
 One lane per hour that has cues, each showing the first part of that hour; **Lane** sets how
 much (30 seconds to 1 hour; *Auto* fits the cues). Amber marks are armed cues, white marks
 disarmed, red marks missing scenes. The white line is the incoming timecode. Hover a mark for its
 cue.
 
-### 5.5 Live update
+### 6.5 Live update
 
 For re-timing a show against the real playback. Switch **Live update** on, play the show, and
 press **Move Q*n* here** when the moment for the nearest cue arrives: that cue takes the incoming
@@ -307,7 +369,7 @@ time. **Undo** puts the last move back.
 
 ---
 
-## 6. Macros
+## 7. Macros
 
 A macro is a short program of **blocks**, read top to bottom. Every block reads as a sentence
 in the desk's own terms, for example:
@@ -322,7 +384,7 @@ When  Input channel 45 ▸ Fader ▸ Level  is greater than  -10.00 dB
 Values are written in each parameter's own unit (dB, Hz, ms, %, on/off). A value meant for a
 fader is read as dB; the same number meant for a filter is read as Hz.
 
-### 6.1 Blocks
+### 7.1 Blocks
 
 | Block | What it does |
 |---|---|
@@ -347,7 +409,7 @@ A processor parameter (a plug-in's knob) is remembered with the processor it bel
 the slot later holds a different processor, the macro follows the parameter by name, or stops
 and says so. It never moves the wrong control.
 
-### 6.2 Triggers: what starts a macro
+### 7.2 Triggers: what starts a macro
 
 A macro with no trigger is run by hand. Otherwise it starts on its own while it is **armed**:
 
@@ -363,7 +425,7 @@ A macro with no trigger is run by hand. Otherwise it starts on its own while it 
 A macro does not re-trigger itself on its own changes: after a run, its triggers re-read the desk
 before they may fire again.
 
-### 6.3 The Macros page
+### 7.3 The Macros page
 
 Two tabs: **Macros** (the list and the editor) and **Record** (what happened, the variables and
 the limits). The header shows how many macros are armed or running, and holds
@@ -420,7 +482,7 @@ Only parameters the block can use are offered: a level can be faded, a filter ty
 **The meter picker** chooses a level to compare against: a channel's meter at a metering point
 (**Single / Multiple / Variable** as above), or a premium-rack plug-in's meter.
 
-### 6.4 Arming and running
+### 7.4 Arming and running
 
 - **Armed** lets a macro's triggers start it. A macro is checked when it is armed. One that
   could not run (an empty slot, a missing scene, a unit that does not fit) stays disarmed, and
@@ -441,7 +503,7 @@ Every run has fixed limits, so a mistake cannot take over the desk:
 
 A run that reaches a limit stops and says which one.
 
-### 6.5 Record, variables and files
+### 7.5 Record, variables and files
 
 - **Record** lists what every run did and why it stopped, newest at the bottom. The tab shows
   how many errors are unread.
@@ -450,9 +512,9 @@ A run that reaches a limit stops and says which one.
 - **Export all** / **Export** write macros to a file; **Import from file** reads them back, to
   move macros between computers.
 
-Macros can also be fired from the timecode cue list ([5.2](#52-cues)).
+Macros can also be fired from the timecode cue list ([6.2](#62-cues)).
 
-### 6.6 Limits of the editor
+### 7.6 Limits of the editor
 
 - A block cannot be dragged into or out of an IF, WHILE or FOR. Remove it and add it again at
   the white line inside the branch, or move it with **Up / Down**.
@@ -460,7 +522,7 @@ Macros can also be fired from the timecode cue list ([5.2](#52-cues)).
 
 ---
 
-## 7. Settings
+## 8. Settings
 
 **Features**: switch each part on or off.
 
@@ -477,7 +539,7 @@ start from the desk's current state, so nothing fires for what changed while the
 
 ---
 
-## 8. Files and backups
+## 9. Files and backups
 
 | System | Folder |
 |---|---|
@@ -491,14 +553,16 @@ start from the desk's current state, so nothing fires for what changed while the
 | `racks.json` | The channel → rack and scene → snapshot tables |
 | `cues.json` | The cue list and songs |
 | `macros.json` | The macros and their variables |
+| `desk.json`, `desk-image.zip` | The show's desk: scene list, channel names, settings |
 | `rack-logs/` | One log per day of everything sent to SuperRack |
 
-Copy the folder to back up a show, or to move it to another computer. Files are written safely:
+`desk.json` and `desk-image.zip` hold the desk the show was built on. A show file is the way to
+keep a show or move it to another computer; copying the folder works as well. Files are written safely:
 a power cut cannot leave a half-written file.
 
 ---
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 | Symptom | Check |
 |---|---|
@@ -516,7 +580,7 @@ The daily log in `rack-logs/` shows everything that happened with SuperRack.
 
 ---
 
-## 10. What DM7 Link does not do
+## 11. What DM7 Link does not do
 
 - **Build racks** in SuperRack from the desk's patch.
 - **Snapshot scope and recall safe**: SuperRack can only change these by reloading its session,

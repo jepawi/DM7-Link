@@ -28,6 +28,7 @@ def main() -> int:
         "--add-data", f"{HERE / 'dm7link' / 'qml'}{SEP}dm7link/qml",
         "--add-data", f"{HERE / 'dm7link' / 'fonts'}{SEP}dm7link/fonts",
         "--add-data", f"{HERE / 'dm7link' / 'icon.png'}{SEP}dm7link",
+        "--add-data", f"{REPO / 'dm7-gui' / 'dm7gui' / 'blank-desk.bin'}{SEP}dm7gui",
         "--collect-submodules", "dm7", "--collect-submodules", "dm7gui",
         "--collect-submodules", "rackbridge",
         "--hidden-import", "sounddevice", "--hidden-import", "psutil",

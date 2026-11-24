@@ -1,7 +1,7 @@
 """DM7 Link's settings file: the panel's `Config`, plus the keys only this app has.
 
 The panel's loader keeps only the keys it knows (its DEFAULTS) and drops the rest on reading,
-so `features` and `superrack_adapter` would be lost at every restart without this.
+so `features`, `superrack_adapter` and the show-file keys would be lost at every restart without this.
 """
 from __future__ import annotations
 
@@ -9,7 +9,9 @@ import json
 
 from dm7gui.config import Config
 
-APP_KEYS = {"features": dict, "superrack_adapter": str}
+APP_KEYS = {"features": dict, "superrack_adapter": str,
+            # show files (`showfile.py`); `offline` is the panel's own key now
+            "show_path": str, "show_recent": list, "show_print": str}
 
 
 class AppConfig(Config):

@@ -32,3 +32,6 @@ MacValueSheet 1.0 MacValueSheet.qml
 MacParamPicker 1.0 MacParamPicker.qml
 MacMeterPicker 1.0 MacMeterPicker.qml
 MacTextDialog 1.0 MacTextDialog.qml
+ShowPage 1.0 ShowPage.qml
+ShowActions 1.0 ShowActions.qml
+ResolveDialog 1.0 ResolveDialog.qml

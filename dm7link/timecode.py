@@ -52,6 +52,25 @@ class ShowCues(IntegrationsBridge):
             cue["kind"] = "macro"
         super().setCueMacro(cue_id, macro_id)
 
+    def reload_book(self) -> None:
+        """Another show's cue list and timecode settings, read again from their files."""
+        from dm7gui.integrations import AUTO
+        self.book.cues, self.book.groups, self.book.names = [], [], {}
+        self.book.span = AUTO
+        self.book.load()
+        self._fired.clear()
+        self._undo = {}
+        self._pin = ""
+        self._opened.clear()
+        self._shut.clear()
+        self._reload()
+        self.reader.configure(self._cfg)
+        self._forget_faults()
+        self._forget_view()
+        self._follow_points()
+        self.settingsChanged.emit()
+        self.cuesChanged.emit()
+
     @Slot(str)
     def addSong(self, name: str) -> None:
         self.book.add_group(str(name))

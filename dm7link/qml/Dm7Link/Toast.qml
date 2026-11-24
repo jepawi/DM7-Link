@@ -38,6 +38,10 @@ Rectangle {
         function onNoticeChanged() { t.show(Scenes.notice, Scenes.noticeTone === "bad" || Scenes.noticeTone === "error" ? "bad" : "") }
     }
     Connections {
+        target: Show
+        function onNotice(text, tone) { t.show(text, tone) }
+    }
+    Connections {
         target: Cues
         function onNoticeChanged() { t.show(Cues.notice, "") }
     }

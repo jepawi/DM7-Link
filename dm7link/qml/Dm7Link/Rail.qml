@@ -7,7 +7,8 @@ Rectangle {
     id: rail
     color: Theme.surface
 
-    readonly property string consoleLamp: Session.online ? "ok" : Session.busy ? "busy"
+    readonly property string consoleLamp: Session.offline ? (Session.online ? "armed" : "bad")
+                                         : Session.online ? "ok" : Session.busy ? "busy"
                                          : Session.phase === "offline" && Session.message === "" ? "off" : "bad"
     readonly property string wavesLamp: !Waves.enabled ? "off" : Waves.pcAnswering ? "ok" : "busy"
     readonly property string tcLamp: {
@@ -24,7 +25,10 @@ Rectangle {
 
     readonly property var places: {
         var out = [{ key: "console", label: "Console", lamp: rail.consoleLamp,
-                     sub: Session.online ? (Session.consoleName || Session.ip) : Session.busy ? "Connecting" : "Offline" }]
+                     sub: Session.offline ? "Working offline"
+                          : Session.online ? (Session.consoleName || Session.ip) : Session.busy ? "Connecting" : "Not connected" },
+                   { key: "show", label: "Show", lamp: Show.issues.length > 0 ? "bad" : Show.modified ? "armed" : "",
+                     sub: Show.name + (Show.modified ? "  ·  not saved" : "") }]
         if (Features.wavesOn)
             out.push({ key: "waves", label: "Waves", lamp: rail.wavesLamp,
                        sub: Waves.pcAnswering ? "SuperRack connected" : "Waiting for SuperRack" })

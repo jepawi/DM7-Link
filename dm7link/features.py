@@ -45,6 +45,29 @@ class AppMacros(MacrosBridge):
             return False
         return super().start_macro(macro_id, why)
 
+    def reload_book(self) -> None:
+        """Another show's macros: every run stops, the file is read again, nothing is open,
+        and the triggers start from a fresh baseline."""
+        from dm7gui.macros.model import names_used
+        for run in list(self._runs.values()):
+            run.stop()
+        self.book.macros = []
+        self.book.load()
+        self._open = ""
+        self._sel = ""
+        self._caret = ":0"
+        self._report = {}
+        self._last.clear()
+        for macro in self.book.macros:
+            for name in names_used(macro):
+                self.vars.declare(name)
+        self._when.forget()
+        self._meanings.invalidate()
+        self.listChanged.emit()
+        self.scriptChanged.emit()
+        self.statusChanged.emit()
+        self.problemsChanged.emit()
+
 
 class Features(QObject):
     changed = Signal()
